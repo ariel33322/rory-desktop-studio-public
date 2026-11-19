@@ -1,0 +1,3 @@
+singleton VisualizerLayersStore 1.0 VisualizerLayersStore.qml
+
+LegacySettingsReader 1.0 LegacySettingsReader.qml

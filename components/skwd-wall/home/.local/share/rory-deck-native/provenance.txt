@@ -1,0 +1,4 @@
+v1.0.0-beta.29 92202807ba4edc239ef723edeed2026b832bbc62
+538d20274401cf7847b639f35509dce859bd208f04bf78da5dc7eb05acf573a5  skwd-wall-v2-1.0.0_beta.29-1-x86_64.pkg.tar.zst
+373f44404b2f2187b82d68ecd531ba527fa1d07dc9bdf588718c2e8c164a8180  skwd-deck-1.0.0_beta.29-1-x86_64.pkg.tar.zst
+cb867f8a8f812ad27a7fb9f6b563cd1f71640c075e93c2f3e072eb1c00cd5584  skwd-paper-1.0.0_beta.29-1-x86_64.pkg.tar.zst

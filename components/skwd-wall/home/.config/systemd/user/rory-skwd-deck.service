@@ -1,0 +1,11 @@
+[Unit]
+Description=Deck beta.29 para Rory
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.local/share/rory-deck-native/session.env
+ExecStart=%h/.local/share/rory-deck-native/control deck
+Restart=on-failure
+RestartSec=2
+Slice=session.slice

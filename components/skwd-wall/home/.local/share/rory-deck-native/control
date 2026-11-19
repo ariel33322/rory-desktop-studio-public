@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+root=$(cd -- "$(dirname -- "$0")" && pwd)
+export PATH="$root/usr/bin:/usr/bin"
+export XDG_DATA_DIRS="$root/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export SKWD_WALL_V2_CONFIG="$root/config"
+export SKWD_WALL_V2_INSTANCE=rory-native
+export SKWD_WALL_THUMBNAILS=rgba-poc
+# Match the Intel/RGBA combination validated with both official binaries.
+if [[ -z ${VK_DRIVER_FILES:-} && -r /usr/share/vulkan/icd.d/intel_icd.json ]]; then
+    export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/intel_icd.json
+fi
+case "$1" in
+    start)
+        [[ ${WAYLAND_DISPLAY:-} =~ ^wayland-[0-9]+$ ]]
+        [[ ${HYPRLAND_INSTANCE_SIGNATURE:-} =~ ^[a-zA-Z0-9_]+$ ]]
+        tmp=$(mktemp "$root/session.XXXXXX")
+        printf 'WAYLAND_DISPLAY=%s\nHYPRLAND_INSTANCE_SIGNATURE=%s\nXDG_CURRENT_DESKTOP=Hyprland\nXDG_SESSION_TYPE=wayland\n' \
+            "$WAYLAND_DISPLAY" "$HYPRLAND_INSTANCE_SIGNATURE" > "$tmp"
+        mv -T "$tmp" "$root/session.env"
+        exec systemctl --user start rory-skwd-deck.service
+        ;;
+    deck) exec skwd-walld ;;
+    picker)
+        profile=rgba-poc
+        if [[ -r "$root/picker-bc" ]]; then profile=bc; fi
+        export SKWD_WALL_THUMBNAILS="${RORY_SKWD_TEST_PROFILE:-$profile}"
+        log="${RORY_SKWD_TEST_LOG:-$root/picker.log}"
+        printf 'invocación %s\n' "$(date +%s.%N)" >> "$log"
+        exec skwd-wall-v2 >> "$log" 2>&1
+        ;;
+    helm) shift; exec skwd-helm "$@" ;;
+    *) exit 2 ;;
+esac

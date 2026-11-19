@@ -1,0 +1,76 @@
+{
+  "components": {
+    "wallpaperSelector": {
+      "activeLayout": "Mi diseño",
+      "savedLayouts": [
+        {
+          "name": "Mi diseño",
+          "values": {
+            "components.wallpaperSelector.displayMode": "hex",
+            "components.wallpaperSelector.hexCurve": "arc",
+            "components.wallpaperSelector.hexRows": 3,
+            "components.wallpaperSelector.hexShape": "hexagon",
+            "general.closeOnSelection": false,
+            "launch.animation": "fade",
+            "motion.launchSpeed": "standard"
+          }
+        }
+      ]
+    }
+  },
+  "features": {
+    "matugen": true,
+    "steam": true,
+    "wallhaven": true
+  },
+  "general": {
+    "closeOnSelection": false,
+    "randomRotate": false
+  },
+  "launch": {
+    "animation": "fade"
+  },
+  "library": {
+    "excludedFolders": [],
+    "folders": []
+  },
+  "motion": {
+    "launchSpeed": "standard"
+  },
+  "paths": {
+    "wallpaper": ""
+  },
+  "performance": {
+    "autoOptimizeImages": true,
+    "gpuPreference": "high"
+  },
+  "pickOnlyMode": false,
+  "pickerLayouts": {
+    "outputs": {},
+    "version": 1
+  },
+  "postProcessOnRestore": false,
+  "postProcessing": [],
+  "restoreOnStartup": true,
+  "schedule": {
+    "applyOnStart": true,
+    "enabled": false
+  },
+  "semantic": {
+    "enabled": true
+  },
+  "theme": {
+    "authority": "",
+    "backend": "off",
+    "engine": "",
+    "policy": "",
+    "scheme": "tonal-spot"
+  },
+  "transition": {
+    "enabled": true,
+    "shader": "crop-relay"
+  },
+  "weather": {
+    "enabled": false
+  }
+}

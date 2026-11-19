@@ -1,0 +1,109 @@
+# Respaldos y recuperación local
+/.backups/
+*.bak
+*.orig
+*.rej
+*~
+
+# Ajustes personales persistentes de Rory
+/.clock-settings.ini
+/.clock-settings.ini.*
+/.wallpaper-settings.ini
+/.wallpaper-settings.ini.*
+/.audio-layers.ini
+/.audio-layers.ini.*
+/.audio-particles.ini
+/.audio-particles.ini.*
+
+# Configuración y datos privados locales
+*.local
+*.local.*
+/.local/
+/private/
+/secrets/
+/credentials/
+/.config/
+/.ssh/
+/.aws/
+.env
+.env.*
+!.env.example
+!.env.sample
+credentials.json
+credentials.ini
+secrets.json
+secrets.ini
+secrets.yaml
+secrets.yml
+tokens.json
+tokens.ini
+.netrc
+.npmrc
+.pypirc
+
+# Claves privadas y almacenes de credenciales
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+
+# Cachés de Python y entornos locales
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Cachés y artefactos de Qt/QML
+.cache/
+.qmlcache/
+*.qmlc
+*.jsc
+*.qmlproject.user*
+*.pro.user*
+
+# Directorios de compilación
+/build/
+/build-*/
+/dist/
+/CMakeFiles/
+/CMakeCache.txt
+/compile_commands.json
+
+# Registros y archivos temporales
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Configuración local de editores y sistema
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+
+# Configuración y perfiles V2, separados de los originales
+/.visualizer-layers.ini
+/.visualizer-layers.ini.*
+
+# Informes locales con valores personales y referencias a respaldos
+/RORY_DESKTOP_STUDIO_ESTADO_*.md
+
+# Administrador de perfiles y vínculos personales
+/.studio-profiles.ini
+/.studio-profiles.ini.*
+
+# Asociaciones y preferencias del lanzador Studio
+/.studio-associations.ini
+/.studio-associations.ini.*
+/.studio-settings.ini
+/.studio-settings.ini.*
