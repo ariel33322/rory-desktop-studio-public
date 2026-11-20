@@ -43,13 +43,47 @@ Item {
     property alias backgroundRotation: saved.backgroundRotation
     property alias backgroundFit: saved.backgroundFit
     property alias profilesData: saved.profilesData
+    property alias elementsData: elements.data
+    readonly property var elementsLayout: readElements(elementsData)
+    property int selectedElement: 0
+    readonly property var elementNames: ["Horas", "Minutos", "Segundos", "Título 1", "Título 2"]
+    signal enableFreeLayout()
+    function readElements(data) {
+        try {
+            const value = JSON.parse(data)
+            if (!Array.isArray(value) || value.length !== 5) return null
+            for (const item of value) {
+                if (!item || typeof item.family !== "string"
+                    || !/^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(item.fill)
+                    || !/^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/i.test(item.outline)
+                    || !Number.isFinite(item.x) || !Number.isFinite(item.y)
+                    || !Number.isInteger(item.size) || item.size < 8 || item.size > 300
+                    || !Number.isFinite(item.stroke) || item.stroke < 0 || item.stroke > 8)
+                    return null
+            }
+            return value
+        } catch (_) { return null }
+    }
+    function editElement(index, changes) {
+        const next = readElements(elementsData)
+        if (!next || !next[index]) return
+        Object.assign(next[index], changes)
+        const data = JSON.stringify(next)
+        if (readElements(data)) elementsData = data
+    }
+    Settings {
+        id: elements
+        location: root.storagePath
+        category: "RoryClockElements"
+        property string data: ""
+    }
     // An empty color retains the original color of each glyph group.
     readonly property var outlineDefaults: ({outlineEnabled:true, outlineColor:"", outlineOpacity:1, outlineWidth:1})
     property alias outlineEnabled: outline.outlineEnabled
     property alias outlineColor: outline.outlineColor
     property alias outlineOpacity: outline.outlineOpacity
     property alias outlineWidth: outline.outlineWidth
-    readonly property var editableKeys: ["timeSize", "accent", "textColor", "title", "signature", "widgetOpacity", "leftPercent", "topPercent", "use24Hour", "customWidth", "customHeight", "fontFamily", "fontWeight", "clockRotation", "showSeconds", "showDate", "elementSpacing", "horizontalAlignment", "verticalAlignment", "backgroundEnabled", "backgroundColor", "backgroundOpacity", "backgroundRadius", "backgroundImage", "backgroundX", "backgroundY", "backgroundWidth", "backgroundHeight", "backgroundScale", "backgroundRotation", "backgroundFit", ...Object.keys(outlineDefaults)]
+    readonly property var editableKeys: ["elementsData", "timeSize", "accent", "textColor", "title", "signature", "widgetOpacity", "leftPercent", "topPercent", "use24Hour", "customWidth", "customHeight", "fontFamily", "fontWeight", "clockRotation", "showSeconds", "showDate", "elementSpacing", "horizontalAlignment", "verticalAlignment", "backgroundEnabled", "backgroundColor", "backgroundOpacity", "backgroundRadius", "backgroundImage", "backgroundX", "backgroundY", "backgroundWidth", "backgroundHeight", "backgroundScale", "backgroundRotation", "backgroundFit", ...Object.keys(outlineDefaults)]
     function snapshot() { const result = {}; for (const key of editableKeys) result[key] = root[key]; result.backgroundImage = backgroundImageUrl; return result }
     function apply(value) { for (const key of editableKeys) root[key] = value[key] }
 

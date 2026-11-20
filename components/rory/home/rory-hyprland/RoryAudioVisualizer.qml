@@ -7,7 +7,7 @@ Item {
     required property WindowCoverage windowCoverage
     required property string monitorName
     anchors.fill: parent
-    visible: settings.effectiveVisualizerEnabled && settings.visualizerEffect === "radial"
+    visible: settings.effectiveVisualizerEnabled && settings.spectrumEffect
         && !windowCoverage.isCovered(monitorName, "visualizer")
 
     readonly property real imageScale: settings.fitMode === "fit"

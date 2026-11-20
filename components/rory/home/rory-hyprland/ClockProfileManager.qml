@@ -40,6 +40,7 @@ QtObject {
         if (!value || typeof value !== "object") throw new Error("Configuración de reloj inválida")
         // Added fields receive defaults; malformed old fields still fail validation.
         const additions = Object.assign({}, settings.outlineDefaults, {
+            elementsData: "",
             customWidth: 0,
             customHeight: 0,
             fontFamily: "Noto Sans",
@@ -76,6 +77,7 @@ QtObject {
             if (["accent","textColor","backgroundColor"].indexOf(key)>=0 && !/^#[0-9a-fA-F]{6}$/.test(value[key])) throw new Error("Color inválido: " + key)
         }
         if (value.outlineColor && !/^#[0-9a-fA-F]{6}$/.test(value.outlineColor)) throw new Error("Color de contorno inválido")
+        if (value.elementsData && !settings.readElements(value.elementsData)) throw new Error("Elementos de reloj inválidos")
         return value
     }
     function commit(doc) {

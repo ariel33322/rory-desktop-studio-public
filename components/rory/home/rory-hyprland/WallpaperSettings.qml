@@ -1,4 +1,5 @@
 pragma ComponentBehavior: Bound
+import "GeometryEngine.js" as Geometry
 import QtQuick
 import QtCore
 import Quickshell
@@ -21,6 +22,10 @@ Item {
     property var studioVisibility:null
     readonly property bool effectiveVisualizerEnabled: studioVisibility === null ? visualizerEnabled : Boolean(studioVisibility)
     property alias visualizerEnabled: saved.visualizerEnabled
+    readonly property string linearDefaults: JSON.stringify(Geometry.linearDefaults())
+    property alias visualizerLinearData: linearPreferences.data
+    readonly property var visualizerLinear: Geometry.linearConfig(visualizerLinearData) || Geometry.linearDefaults()
+    readonly property bool spectrumEffect: visualizerEffect === "radial" || visualizerEffect === "linear"
     property alias visualizerEffect: saved.visualizerEffect
     property alias visualizerIntensity: saved.visualizerIntensity
     property alias visualizerColor: saved.visualizerColor
@@ -96,7 +101,7 @@ Item {
     property string visualizerStatus: ""
     // Audio follows visualizer controls, independently of the selected image.
     readonly property bool visualizerAudioActive: effectiveVisualizerEnabled && !visualizerTestMode
-        && visualizerEffect === "radial"
+        && spectrumEffect
     onVisualizerAudioActiveChanged: {
         if (!visualizerAudioActive) {
             spectrum = []
@@ -109,6 +114,7 @@ Item {
     }
 
     readonly property var visualizerEffects: [
+        { id: "linear", name: "Barras lineales", ready: true },
         { id: "radial", name: "Espectro radial", ready: true },
         { id: "fluid-circle", name: "Onda circular fluida", ready: false },
         { id: "energy-pulse", name: "Pulso de energía", ready: false },
@@ -152,6 +158,12 @@ Item {
         property real visualizerSilenceThreshold: 0.5
         property int visualizerSilenceHold: 600
         property int visualizerSilenceFade: 250
+    }
+    Settings {
+        id: linearPreferences
+        location: root.storagePath
+        category: "RoryVisualizerLinear"
+        property string data: root.linearDefaults
     }
     Settings {
         id: saved

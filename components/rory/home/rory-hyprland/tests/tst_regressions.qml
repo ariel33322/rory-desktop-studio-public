@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
+import "GeometryEngine.js" as Geometry
 import "StudioProfiles.js" as Profiles
 import "Representation.js" as Styles
 import "PathCuts.js" as Cuts
@@ -363,6 +364,17 @@ ShellRoot {
         pointer.applySize(150,160,300,200,30,45,false,clock.timeSize)
         compare(clock.widgetWidth,330)
         compare(clock.widgetHeight,245)
+        clock.editorScreen=widgets[0].modelData
+        clock.enableFreeLayout()
+        verify(clock.elementsLayout && clock.elementsLayout.length===5,"free layout initialized from the actual clock")
+        const minutes=Profiles.signature(clock.elementsLayout[1])
+        const seconds=Profiles.signature(clock.elementsLayout[2])
+        clock.editElement(0,{x:11,y:37,size:54,family:"Serif",fill:"#123456",outline:"#abcdef",stroke:3})
+        clock.showSeconds=true
+        clock.showSeconds=false
+        compare(Profiles.signature(clock.elementsLayout[1]),minutes)
+        compare(Profiles.signature(clock.elementsLayout[2]),seconds)
+        compare(clock.elementsLayout[0].x,11)
         clock.backgroundImage=linkedUrl
         clock.backgroundEnabled=true
         menuItem(clockBar,"saveManagedProfile").triggered()
@@ -391,6 +403,24 @@ ShellRoot {
         verify(named(layers,"visualizerBarCount").width>0)
         const gallery=descendants(workspace).find(item=>typeof item.choose==="function")
         verify(gallery.gallery.some(path=>gallery.localUrl(path)===linkedUrl),"gallery scanner must return the fixture image: "+gallery.wallpaperFolder+" / "+JSON.stringify(gallery.gallery))
+        history.editLinear({length:320,height:60,count:48,x:30,y:70,inset:12})
+        for(const edge of ["top","bottom","left","right"]){
+            history.editLinear({edge:edge})
+            const frame=Geometry.linearFrame(wallpaper.visualizerLinear,500,400)
+            const points=Geometry.linearPoints(frame,48)
+            compare(points.length,48)
+            compare(frame.base,{top:12,bottom:388,left:12,right:488}[edge])
+            compare(frame.reverse,edge==="bottom" || edge==="right")
+            const smaller=Geometry.linearFrame(wallpaper.visualizerLinear,200,150)
+            verify(smaller.length<=smaller.along)
+        }
+        const oldGeometry=wallpaper.visualizerGeometry
+        history.setValue("visualizerEffect","linear")
+        verify(wallpaper.spectrumEffect)
+        history.undo()
+        compare(wallpaper.visualizerEffect,"radial")
+        compare(wallpaper.visualizerGeometry,oldGeometry)
+        verify(audio.saveProfile(audio.activeId,false),audio.error)
         console.log("UI inventory: bars, geometry, position, representations, color, audio, glow, animations, cuts, particles, profiles; wide and compact layouts")
     }
     function restart(){
@@ -405,6 +435,15 @@ ShellRoot {
         verify(clock.backgroundEnabled)
         compare(clock.widgetWidth,330)
         compare(clock.widgetHeight,245)
+        compare(clock.elementsLayout[0].x,11)
+        compare(clock.elementsLayout[0].y,37)
+        compare(clock.elementsLayout[0].size,54)
+        compare(clock.elementsLayout[0].family,"Serif")
+        compare(clock.elementsLayout[0].fill,"#123456")
+        compare(clock.elementsLayout[0].outline,"#abcdef")
+        compare(clock.elementsLayout[0].stroke,3)
+        compare(wallpaper.visualizerLinear.count,48)
+        compare(wallpaper.visualizerLinear.edge,"right")
         compare(wallpaper.visualizerWidth,650)
         compare(wallpaper.visualizerHeight,540)
         compare(wallpaper.visualizerCenterX,910)

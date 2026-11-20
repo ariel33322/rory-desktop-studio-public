@@ -42,7 +42,51 @@ PanelWindow {
         return formatted.length ? formatted.charAt(0).toLocaleUpperCase() + formatted.slice(1) : formatted
     }
     function timeLabel() {
-        return Qt.formatDateTime(now, (settings.use24Hour ? "HH:mm" : "hh:mm") + (settings.showSeconds ? ":ss" : "") + (settings.use24Hour ? "" : " AP"))
+        const referenceSeconds = settings.elementsLayout?.[0]?.referenceSeconds ?? settings.showSeconds
+        return Qt.formatDateTime(now, (settings.use24Hour ? "HH:mm" : "hh:mm")
+            + (referenceSeconds ? ":ss" : "") + (settings.use24Hour ? "" : " AP"))
+    }
+
+    function hours() {
+        const hours = now.getHours()
+        const value = settings.use24Hour ? hours : hours % 12 || 12
+        return String(value).padStart(2, "0")
+    }
+
+    function initializeElements() {
+        if (!editingOnScreen || settings.elementsLayout) return
+        const titleX = item => item.effectiveHorizontalAlignment === Text.AlignLeft ? 0
+            : item.effectiveHorizontalAlignment === Text.AlignRight ? item.width - item.contentWidth
+            : (item.width - item.contentWidth) / 2
+        const item = (x, y, label) => ({
+            x: Math.round(x), y: Math.round(y), family: label.font.family, size: label.font.pixelSize,
+            fill: String(label.fillColor), outline: String(label.outlineInk),
+            stroke: label.outlined ? label.strokeWidth : 0
+        })
+        const x = timeRow.x
+        const y = legacy.y + timeRow.y
+        settings.elementsData = JSON.stringify([
+            Object.assign(item(x, y, legacyTime), {referenceSeconds:settings.showSeconds}),
+            item(x + beforeMinutes.advanceWidth, y, legacyTime),
+            item(x + beforeSeconds.advanceWidth, y, legacyTime),
+            item(titleX(firstTitle), legacy.y + firstTitle.y, firstTitle),
+            item(titleX(secondTitle), legacy.y + secondTitle.y, secondTitle)
+        ])
+    }
+
+    Connections {
+        target: clock.settings
+        function onEnableFreeLayout() { clock.initializeElements() }
+    }
+    TextMetrics {
+        id: beforeMinutes
+        font: legacyTime.font
+        text: clock.hours() + ":"
+    }
+    TextMetrics {
+        id: beforeSeconds
+        font: legacyTime.font
+        text: clock.hours() + ":" + Qt.formatDateTime(clock.now, "mm:")
     }
 
     Timer {
@@ -92,6 +136,7 @@ PanelWindow {
             }
 
             Column {
+                id: legacy
                 width: parent.width
                 y: clock.settings.verticalAlignment === 1 ? (parent.height - height) / 2
                     : clock.settings.verticalAlignment === 2 ? parent.height - height : 0
@@ -100,6 +145,8 @@ PanelWindow {
                 ClockOutlineText {
                     settings: clock.settings
                     width: parent.width
+                    id: firstTitle
+                    opacity: clock.settings.elementsLayout ? 0 : 1
                     text: clock.settings.title
                     fillColor: clock.settings.accent
                     horizontalAlignment: clock.settings.horizontalAlignment === 0 ? Text.AlignLeft : clock.settings.horizontalAlignment === 2 ? Text.AlignRight : Text.AlignHCenter
@@ -113,6 +160,8 @@ PanelWindow {
                 ClockOutlineText {
                     settings: clock.settings
                     width: parent.width
+                    id: secondTitle
+                    opacity: clock.settings.elementsLayout ? 0 : 1
                     text: clock.settings.signature
                     fillColor: clock.settings.textColor
                     horizontalAlignment: clock.settings.horizontalAlignment === 0 ? Text.AlignLeft : clock.settings.horizontalAlignment === 2 ? Text.AlignRight : Text.AlignHCenter
@@ -133,10 +182,13 @@ PanelWindow {
                 }
 
                 Row {
+                    id: timeRow
                     x: clock.settings.horizontalAlignment === 0 ? 0 : clock.settings.horizontalAlignment === 2 ? parent.width - width : (parent.width - width) / 2
                     spacing: 8
                     ClockOutlineText {
                         settings: clock.settings
+                        id: legacyTime
+                        opacity: clock.settings.elementsLayout ? 0 : 1
                         text: clock.timeLabel().replace(/\s?(AM|PM)$/, "")
                         fillColor: clock.settings.textColor
                         font.family: clock.settings.fontFamily
@@ -178,6 +230,54 @@ PanelWindow {
                     Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 84; height: 1; color: clock.settings.accent }
                     Text { text: "❧"; color: clock.settings.accent; font.pixelSize: 26; rotation: 90 }
                     Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 84; height: 1; color: clock.settings.accent }
+                }
+            }
+
+            Repeater {
+                model: clock.settings.elementNames.length
+                delegate: ClockOutlineText {
+                    id: element
+                    required property int index
+                    readonly property var configuration: clock.settings.elementsLayout?.[index]
+                    settings: clock.settings
+                    individual: true
+                    x: configuration?.x ?? 0
+                    y: configuration?.y ?? 0
+                    fillColor: configuration?.fill ?? "white"
+                    originalOutline: configuration?.outline ?? "transparent"
+                    strokeWidth: configuration?.stroke ?? 0
+                    font.family: configuration?.family || clock.settings.fontFamily
+                    font.pixelSize: configuration?.size ?? 20
+                    font.weight: clock.settings.fontWeight
+                    font.letterSpacing: index === 3 ? 1.6 : index === 4 ? 6 : -2
+                    visible: !!configuration && (index !== 2 || clock.settings.showSeconds)
+                    text: index === 0 ? clock.hours() + ":"
+                        : index === 1 ? Qt.formatDateTime(clock.now, "mm") + (clock.settings.showSeconds ? ":" : "")
+                        : index === 2 ? Qt.formatDateTime(clock.now, "ss")
+                        : index === 3 ? clock.settings.title : clock.settings.signature
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: clock.pointerOnScreen
+                        acceptedButtons: Qt.LeftButton
+                        preventStealing: true
+                        cursorShape: Qt.SizeAllCursor
+                        property point start
+                        property point origin
+                        onPressed: event => {
+                            start = mapToItem(face, event.x, event.y)
+                            origin = Qt.point(element.x, element.y)
+                            clock.settings.selectedElement = element.index
+                        }
+                        onPositionChanged: event => {
+                            if (!pressed) return
+                            const point = mapToItem(face, event.x, event.y)
+                            clock.settings.editElement(element.index, {
+                                x: Math.round(origin.x + point.x - start.x),
+                                y: Math.round(origin.y + point.y - start.y)
+                            })
+                        }
+                    }
                 }
             }
         }

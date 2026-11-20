@@ -7,9 +7,12 @@ Text {
     required property ClockSettings settings
     required property color fillColor
     required property color originalOutline
-    readonly property bool outlined: settings.outlineEnabled && settings.outlineOpacity > 0
-    readonly property bool vectorOutline: outlined && settings.outlineWidth !== 1
+    property bool individual: false
+    property real strokeWidth: settings.outlineWidth
+    readonly property bool outlined: individual ? strokeWidth > 0 : settings.outlineEnabled && settings.outlineOpacity > 0
+    readonly property bool vectorOutline: outlined && strokeWidth !== 1
     readonly property color outlineInk: {
+        if (individual) return originalOutline
         const ink = settings.outlineColor === "" ? originalOutline : Qt.color(settings.outlineColor)
         return Qt.rgba(ink.r, ink.g, ink.b, ink.a * settings.outlineOpacity)
     }
@@ -27,7 +30,7 @@ Text {
                 fillRule: ShapePath.WindingFill
                 fillColor: label.fillColor
                 strokeColor: label.outlineInk
-                strokeWidth: label.settings.outlineWidth
+                strokeWidth: label.strokeWidth
                 joinStyle: ShapePath.RoundJoin
                 PathText {
                     x: label.effectiveHorizontalAlignment === Text.AlignHCenter ? (label.width - label.contentWidth) / 2

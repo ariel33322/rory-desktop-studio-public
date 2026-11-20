@@ -40,12 +40,12 @@ QtObject {
  function fail(exception){error=String(exception.message || exception);return false}
  function normalized(value){
   if(!value || typeof value!=="object" || !value.visualizerLayersV2)throw new Error("El perfil no contiene una configuración de capas")
-  const result=Object.assign({},controller.snapshot(),settings.silenceDefaults,Layers.copy(value)),doc=controller.validateSnapshot(result)
+  const result=Object.assign({},controller.snapshot(),settings.silenceDefaults,{visualizerLinearData:settings.linearDefaults},Layers.copy(value)),doc=controller.validateSnapshot(result)
   result.visualizerLayersV2=JSON.stringify(doc);result.version=2;delete result.visualizerManagedProfileId
   return result
  }
  function fingerprint(value){
-  value=Object.assign({},settings.silenceDefaults,value)
+  value=Object.assign({visualizerLinearData:settings.linearDefaults},settings.silenceDefaults,value)
   const result={}
   for(const key of controller.editableKeys){
    if(key==="visualizerManagedProfileId" || controller.mapped(key) || value[key]===undefined)continue

@@ -52,6 +52,7 @@ Item {
         enabled: editLayer.editing
         acceptedButtons: Qt.LeftButton
         target: null
+        grabPermissions: PointerHandler.TakeOverForbidden
         property real startX: 0
         property real startY: 0
         property real startWidth: 0

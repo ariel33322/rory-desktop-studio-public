@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import "IndependentCurve.js" as IndependentCurve
+import "GeometryEngine.js" as Geometry
 import "AudioLayers.js" as AudioLayers
 
 PanelWindow {
@@ -30,6 +31,7 @@ PanelWindow {
             width: editor.pointerEditActive ? editor.editBoundsWidth + 40 : 0
             height: editor.pointerEditActive ? editor.editBoundsHeight + 40 : 0
         }
+        Region { item: lineGrip.visible ? lineGrip : null }
         Region { item: pointerEditOverlay.visible ? dimensionGrip : null }
     }
 
@@ -73,6 +75,52 @@ PanelWindow {
     readonly property real editBoundsHeight: calculateBound(3)
     readonly property bool pointerEditActive: visible && settings.visualizerPointerEditMode
         && settings.effectiveVisualizerEnabled && settings.visualizerEffect === "radial"
+
+    readonly property var lineFrame: settings.visualizerEffect === "linear"
+        ? Geometry.linearFrame(settings.visualizerLinear,width,height) : null
+
+    Rectangle {
+        id: lineGrip
+        readonly property var frame: editor.lineFrame
+        visible: !!frame && editor.visible && editor.settings.visualizerPointerEditMode
+            && editor.settings.effectiveVisualizerEnabled
+        x: !frame ? 0 : frame.horizontal ? frame.start : Math.max(0,Math.min(editor.width-width,frame.base-width/2))
+        y: !frame ? 0 : frame.horizontal ? Math.max(0,Math.min(editor.height-height,frame.base-height/2)) : frame.start
+        width: !frame ? 0 : frame.horizontal ? frame.length : 16
+        height: !frame ? 0 : frame.horizontal ? 16 : frame.length
+        color: "#48241117"
+        border.color: "#ca879b"
+        radius: 3
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.SizeAllCursor
+            property point start
+            property var original
+            onPressed: event => {
+                start = mapToItem(null,event.x,event.y)
+                original = editor.settings.visualizerLinear
+                editor.beginTransaction()
+            }
+            onPositionChanged: event => {
+                if (!pressed) return
+                const frame = lineGrip.frame
+                const point = mapToItem(null,event.x,event.y)
+                const dx = point.x-start.x, dy = point.y-start.y
+                const percent = (value,delta,space) => Math.max(0,Math.min(100,value+100*delta/Math.max(1,space)))
+                const changes = {}
+                if (frame.horizontal || original.edge==="free")
+                    changes.x = percent(original.x,dx,frame.horizontal ? frame.along-frame.length : frame.across-frame.depth)
+                if (!frame.horizontal || original.edge==="free")
+                    changes.y = percent(original.y,dy,frame.horizontal ? frame.across-frame.depth : frame.along-frame.length)
+                if (original.edge!=="free")
+                    changes.inset = Math.max(0,Math.min(4096,frame.across-frame.depth,
+                        original.inset+(frame.horizontal ? dy : dx)*(frame.reverse ? -1 : 1)))
+                editor.history.editLinear(changes)
+            }
+            onReleased: editor.endTransaction()
+            onCanceled: editor.endTransaction()
+        }
+    }
 
     property var profileManager:null
     readonly property var history:profileManager ? profileManager.controller : localHistory

@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import "GeometryEngine.js" as Geometry
 import "AudioLayers.js" as Layers
 import "visualizer-layers" as V2
 
@@ -14,6 +15,8 @@ Rectangle {
         readonly property var loud: Array(24).fill(1000)
         readonly property var quiet: Array(24).fill(0)
         property var spectrum: loud
+        property string visualizerEffect: "radial"
+        property var visualizerLinear: Geometry.linearDefaults()
         property bool hideSilentBars: false
         readonly property real barSilenceOpacity: gate.barOpacity
         readonly property bool effectiveVisualizerEnabled: true
@@ -84,6 +87,7 @@ Rectangle {
         function init() {
             input.hideSilentBars = false
             input.spectrum = input.loud
+            input.visualizerEffect = "radial"
             scene()
         }
 
@@ -154,6 +158,23 @@ Rectangle {
             const resumed = activeFrame()
             compare(resumed.green,active.green)
             compare(resumed.background,active.background)
+        }
+
+        function test_linearBarsRespondOnEveryEdge() {
+            input.visualizerEffect = "linear"
+            function redAt(x,y) {
+                const image = grabImage(stage)
+                return image.red(x,y)>85 && image.green(x,y)<50 && image.blue(x,y)<50
+            }
+            for (const [edge,x,y] of [["top", 95,38],["bottom",95,262],
+                                      ["left",38,65],["right",322,65]]) {
+                input.visualizerLinear = Object.assign(Geometry.linearDefaults(),
+                    {edge:edge,x:0,y:0,thickness:7,gap:0,length:240,height:55,count:24})
+                input.spectrum = input.loud
+                tryVerify(() => redAt(x,y),2500,"bars must grow inward from "+edge)
+                input.spectrum = input.quiet
+                tryVerify(() => !redAt(x,y),2500,"quiet bars must retract at "+edge)
+            }
         }
 
         function test_cutOnlyChangesSelectedBars() {

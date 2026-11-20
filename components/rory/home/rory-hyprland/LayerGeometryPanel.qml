@@ -32,7 +32,65 @@ ColumnLayout {
  }
  Label {Layout.fillWidth:true;wrapMode:Text.WordWrap;color:"#b6a3ad";font.pixelSize:11;text:panel.shared ? "Referencia de las capas heredadas. Ancho, alto y radios siguen siendo independientes." : panel.geometry.inherited ? "Esta capa sigue la figura compartida; editarla no cambia su configuración propia guardada." : "Sólo esta capa. Sus transformaciones relativas se ajustan en Posición."}
  StudioButton {visible:!panel.shared && panel.geometry.inherited;Layout.fillWidth:true;text:"Editar figura compartida";onClicked:panel.editSharedRequested()}
- ColumnLayout {Layout.fillWidth:true;visible:panel.shared || !panel.geometry.inherited
+ readonly property bool linearMode: panel.shared && settings.visualizerEffect === "linear"
+ RowLayout {
+  Layout.fillWidth: true
+  visible: panel.shared
+  Label {text:"Trazado";color:"#ded5da"}
+  StudioCombo {
+   Layout.fillWidth:true
+   model:["Figuras y contornos","Barras lineales"]
+   currentIndex:panel.linearMode ? 1 : 0
+   onActivated:index=>panel.controller.setValue("visualizerEffect",index===1 ? "linear" : "radial")
+  }
+ }
+ ColumnLayout {
+  Layout.fillWidth:true
+  visible:panel.linearMode
+  readonly property var config:panel.settings.visualizerLinear
+  id:linePanel
+  Label {text:"Colocación";color:"#ded5da"}
+  StudioCombo {
+   Layout.fillWidth:true
+   readonly property var edges:["free","top","bottom","left","right"]
+   model:["Libre","Borde superior","Borde inferior","Borde izquierdo","Borde derecho"]
+   currentIndex:edges.indexOf(linePanel.config.edge)
+   onActivated:index=>panel.controller.editLinear({edge:edges[index]})
+  }
+  StudioCombo {
+   Layout.fillWidth:true
+   visible:linePanel.config.edge==="free"
+   model:["Horizontal","Vertical"]
+   currentIndex:linePanel.config.direction==="horizontal" ? 0 : 1
+   onActivated:index=>panel.controller.editLinear({direction:index===0 ? "horizontal" : "vertical"})
+  }
+  Repeater {
+   model:[{key:"x",label:"Posición X",min:0,max:100},
+       {key:"y",label:"Posición Y",min:0,max:100},{key:"inset",label:"Distancia al borde",min:0,max:4096},
+       {key:"length",label:"Longitud de la línea",min:24,max:4096},{key:"height",label:"Altura máxima de las barras",min:1,max:2160},
+       {key:"thickness",label:"Grosor de las barras",min:1,max:100},{key:"gap",label:"Separación mínima",min:0,max:100},
+       {key:"count",label:"Cantidad de barras",min:24,max:384}]
+   delegate:VisualizerSlider {
+    required property var modelData
+    Layout.fillWidth:true
+    visible:modelData.key==="x" ? !["left","right"].includes(linePanel.config.edge)
+        : modelData.key==="y" ? !["top","bottom"].includes(linePanel.config.edge)
+        : modelData.key==="inset" ? linePanel.config.edge!=="free" : true
+    controller:panel.controller
+    label:modelData.label
+    explanation:""
+    from:modelData.min
+    to:modelData.max
+    suffix:modelData.key==="x" || modelData.key==="y" ? " %" : modelData.key==="count" ? "" : " px"
+    decimals:0
+    step:1
+    value:linePanel.config[modelData.key]
+    onValueEdited:v=>panel.controller.editLinear({[modelData.key]:v})
+   }
+  }
+  StudioToggle {text:"Ajustar con puntero";checked:panel.settings.visualizerPointerEditMode;onToggled:panel.settings.visualizerPointerEditMode=checked}
+ }
+ ColumnLayout {Layout.fillWidth:true;visible:!panel.linearMode && (panel.shared || !panel.geometry.inherited)
   StudioCombo {Layout.fillWidth:true;objectName:"localGeometry";model:["Círculo","Elipse","Cuadrado","Triángulo","Estrella","Onda libre"];currentIndex:panel.shapes.indexOf(panel.localSettings.visualizerGeometry);onActivated:index=>{panel.forceActiveFocus();panel.edit("visualizerGeometry",panel.shapes[index])}}
   GridLayout {Layout.fillWidth:true;columns:width<560 ? 1 : 2;columnSpacing:12;rowSpacing:8
    Repeater {model:[{key:"visualizerWidth",label:"Ancho",from:120,to:1400},{key:"visualizerHeight",label:"Alto",from:120,to:1400},{key:"visualizerRadiusX",label:"Radio X",from:60,to:700},{key:"visualizerRadiusY",label:"Radio Y",from:60,to:700},{key:"visualizerOrientation",label:"Orientación de figura",from:-180,to:180},{key:"visualizerOffset",label:"Separación del contorno",from:-300,to:300},{key:"visualizerScale",label:"Escala de figura",from:.1,to:4}]

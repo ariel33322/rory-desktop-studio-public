@@ -1,4 +1,5 @@
 import QtQml
+import "GeometryEngine.js" as Geometry
 import "AudioLayers.js" as Layers
 import "PathCuts.js" as Cuts
 import "Representation.js" as Representation
@@ -42,7 +43,7 @@ QtObject {
      "visualizerGeometry","visualizerShapeMode","visualizerIndependentVertices","visualizerShapeData",
      "visualizerOrientation","visualizerScale","visualizerOffset","visualizerIntensity","visualizerSensitivity",
      "visualizerColor","visualizerOpacity","visualizerGlow","visualizerGlowEnabled","visualizerGlowIntensity",
-     "visualizerGlowSensitivity","visualizerGlowSmoothing","visualizerSmoothing","visualizerAttack","visualizerBass","visualizerLayersV2","visualizerEnabled","visualizerTestMode","visualizerEffect","visualizerManagedProfileId", ...Object.keys(settings.silenceDefaults)]
+     "visualizerGlowSensitivity","visualizerGlowSmoothing","visualizerSmoothing","visualizerAttack","visualizerBass","visualizerLayersV2","visualizerEnabled","visualizerTestMode","visualizerEffect","visualizerManagedProfileId","visualizerLinearData", ...Object.keys(settings.silenceDefaults)]
  function initialize() {
   if(resolution.error) {error=resolution.error;return false}
   if(!V2.VisualizerLayersStore.document)V2.VisualizerLayersStore.document=JSON.stringify(document)
@@ -76,6 +77,11 @@ QtObject {
    if(encoded===readValue("visualizerLayersV2"))return
    record();V2.VisualizerLayersStore.document=encoded;error=""
   }catch(e){error=String(e.message || e)}
+ }
+ function editLinear(changes) {
+  const next=Object.assign({},settings.visualizerLinear,changes)
+  const encoded=JSON.stringify(next)
+  if(Geometry.linearConfig(encoded))setValue("visualizerLinearData",encoded)
  }
  function moveSharedGeometry(startX, startY, dx, dy, scale) {
   setValue("visualizerCenterX", Math.max(0, Math.min(1920, startX + dx / scale)))
@@ -213,6 +219,7 @@ QtObject {
   setDocument(doc)
  }
  function validateSnapshot(value) {
+  if(value.visualizerLinearData!==undefined && !Geometry.linearConfig(value.visualizerLinearData))throw new Error("Geometría lineal inválida")
   for(const key of ["visualizerEnabled","visualizerTestMode","visualizerHideSilentBars"])if(value[key]!==undefined && typeof value[key]!=="boolean")throw new Error("Perfil: activación inválida "+key)
   if(value.visualizerEffect!==undefined && !(settings.visualizerEffects || []).some(effect=>effect.id===value.visualizerEffect))throw new Error("Efecto de perfil desconocido")
   if(value.visualizerManagedProfileId!==undefined && typeof value.visualizerManagedProfileId!=="string")throw new Error("Identificador de perfil inválido")
@@ -242,7 +249,7 @@ QtObject {
   return doc
  }
  function applySnapshot(value) {
-  value=Object.assign({},settings.silenceDefaults,value)
+  value=Object.assign({visualizerLinearData:settings.linearDefaults},settings.silenceDefaults,value)
   const doc=validateSnapshot(value)
   restoring=true
   try {

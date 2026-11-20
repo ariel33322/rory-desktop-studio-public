@@ -66,7 +66,7 @@ PanelWindow {
             }
             StudioNavigation {Layout.fillWidth:true;studio:editor.studio;targetScreen:editor.modelData;destination:"clock"}
             StudioProfileBar {Layout.fillWidth:true;manager:editor.profileManager}
-            StudioCombo {Layout.fillWidth:true;model:["Geometría","Tipografía y color","Contenido","Fondo"];currentIndex:editor.category;onActivated:index=>{editor.finish();editor.category=index}}
+            StudioCombo {Layout.fillWidth:true;model:["Geometría","Tipografía y color","Contenido","Fondo","Elementos"];currentIndex:editor.category;onActivated:index=>{editor.finish();editor.category=index}}
             ScrollView {
                 id: scroll
                 Layout.fillWidth:true;Layout.fillHeight:true;clip:true;contentWidth:availableWidth
@@ -102,7 +102,7 @@ PanelWindow {
                             Layout.fillWidth:true;text:"Ajustar con puntero"
                             onClicked:{editor.settings.pointerEditMode=true;editor.closeEditor()}
                         }
-                        Label {Layout.fillWidth:true;text:"Arrastra para mover. Usa la esquina para redimensionar, Mayús para escalar y clic derecho para volver.";color:"#bea8b3";wrapMode:Text.WordWrap}
+                        Label {Layout.fillWidth:true;text:"Arrastra un elemento para moverlo en modo libre. Arrastra el espacio vacío para mover el conjunto. Usa la esquina para redimensionar, Mayús para escalar y clic derecho para volver.";color:"#bea8b3";wrapMode:Text.WordWrap}
                         VisualizerSlider {Layout.fillWidth:true;controller:editor.profileManager.controller;label:"Posición horizontal (%)";from:0;to:100;explanation:"";step:0.1;decimals:1;value:editor.settings.leftPercent*100;onValueEdited:v=>{editor.settings.leftPercent=v/100}}
                         VisualizerSlider {Layout.fillWidth:true;controller:editor.profileManager.controller;label:"Posición vertical (%)";from:0;to:100;explanation:"";step:0.1;decimals:1;value:editor.settings.topPercent*100;onValueEdited:v=>{editor.settings.topPercent=v/100}}
                         VisualizerSlider {Layout.fillWidth:true;controller:editor.profileManager.controller;label:"Anchura (px)";from:40;to:4096;explanation:"";step:1;decimals:0;value:editor.settings.widgetWidth;onValueEdited:v=>{editor.settings.customWidth=v}}
@@ -152,6 +152,76 @@ PanelWindow {
                         StudioToggle {text:"Mostrar segundos";checked:editor.settings.showSeconds;onToggled:editor.settings.showSeconds=checked}
                         StudioToggle {text:"Mostrar fecha";checked:editor.settings.showDate;onToggled:editor.settings.showDate=checked}
                         VisualizerSlider {Layout.fillWidth:true;controller:editor.profileManager.controller;label:"Separación entre elementos (px)";from:0;to:100;explanation:"";step:1;decimals:0;value:editor.settings.elementSpacing;onValueEdited:v=>{editor.settings.elementSpacing=v}}
+                    }
+                    StudioSection {
+                        title: "Elementos independientes"
+                        visible: editor.category === 4
+                        readonly property int selected: editor.settings.selectedElement
+                        readonly property var element: editor.settings.elementsLayout?.[selected]
+                        id: elementsPanel
+                        StudioButton {
+                            Layout.fillWidth: true
+                            visible: !elementsPanel.element
+                            text: "Activar distribución libre"
+                            onClicked: editor.settings.enableFreeLayout()
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            visible: !!elementsPanel.element
+                            StudioCombo {
+                                Layout.fillWidth: true
+                                model: editor.settings.elementNames
+                                currentIndex: elementsPanel.selected
+                                onActivated: index => { editor.finish(); editor.settings.selectedElement = index }
+                            }
+                            StudioCombo {
+                                Layout.fillWidth: true
+                                model: Qt.fontFamilies()
+                                currentIndex: model.indexOf(elementsPanel.element?.family ?? "")
+                                onActivated: index => editor.settings.editElement(elementsPanel.selected, {family:model[index]})
+                            }
+                            Repeater {
+                                model: [{key:"x",label:"X",min:-4096,max:4096},
+                                    {key:"y",label:"Y",min:-4096,max:4096},
+                                    {key:"size",label:"Tamaño de fuente",min:8,max:300},
+                                    {key:"stroke",label:"Grosor del contorno",min:0,max:8}]
+                                delegate: VisualizerSlider {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    controller: editor.profileManager.controller
+                                    label: modelData.label
+                                    explanation: ""
+                                    from: modelData.min
+                                    to: modelData.max
+                                    decimals: modelData.key === "stroke" ? 1 : 0
+                                    step: modelData.key === "stroke" ? 0.1 : 1
+                                    suffix: " px"
+                                    value: elementsPanel.element?.[modelData.key] ?? from
+                                    onValueEdited: v => editor.settings.editElement(elementsPanel.selected, {[modelData.key]:v})
+                                }
+                            }
+                            Label { text: "Relleno"; color: "#ded5da" }
+                            StudioColorEditor {
+                                Layout.fillWidth: true
+                                controller: editor.profileManager.controller
+                                value: elementsPanel.element?.fill ?? "#ffffff"
+                                contextKey: editor.profileManager.activeId + "/fill/" + elementsPanel.selected
+                                onColorEdited: v => editor.settings.editElement(elementsPanel.selected, {fill:v})
+                            }
+                            Label { text: "Contorno"; color: "#ded5da" }
+                            StudioColorEditor {
+                                Layout.fillWidth: true
+                                controller: editor.profileManager.controller
+                                value: elementsPanel.element?.outline ?? "#ffffff"
+                                contextKey: editor.profileManager.activeId + "/outline/" + elementsPanel.selected
+                                onColorEdited: v => editor.settings.editElement(elementsPanel.selected, {outline:v})
+                            }
+                            StudioButton {
+                                Layout.fillWidth: true
+                                text: "Ajustar con puntero"
+                                onClicked: { editor.settings.pointerEditMode=true; editor.closeEditor() }
+                            }
+                        }
                     }
                     StudioSection {title:"Fondo";visible:editor.category===3
                         ClockBackgroundPanel {Layout.fillWidth:true;settings:editor.settings;manager:editor.profileManager}

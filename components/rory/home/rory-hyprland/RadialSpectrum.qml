@@ -22,6 +22,10 @@ Item {
  required property real circleRadiusY
  required property real imageScale
  anchors.fill: parent
+ readonly property bool linearMode: settings.visualizerEffect === "linear"
+ readonly property var linear: settings.visualizerLinear || GeometryEngine.linearDefaults()
+ readonly property var lineFrame: GeometryEngine.linearFrame(linear,width,height)
+ readonly property var linearPoints: GeometryEngine.linearPoints(lineFrame,resolvedBarCount())
  readonly property var resolution: !V2.VisualizerLayersStore.document && V2.VisualizerLayersStore.migrationError ?
      ({document:null,error:V2.VisualizerLayersStore.migrationError}) : AudioLayers.resolveV2(V2.VisualizerLayersStore.document,AudioLayers.legacySettings(settings,V2.VisualizerLayersStore.legacySnapshot),
      LegacyLayers.AudioLayersStore.data,LegacyParticles.ParticlesStore.data)
@@ -31,7 +35,7 @@ Item {
      bars:layer.type==="bars" ? layerBarStyle(layer) : null,
      waves:layer.type==="waves" ? Object.assign({},layer.params.waves,{representation:layer.styles.waves}) : null,
      particles:layer.type==="particles" ? Object.assign(AudioLayers.particleConfig(layer),{visibleRuns:Cuts.runs(layer.cuts)}) : null}))
- readonly property string transformKey: JSON.stringify(renderLayers.map(layer=>({id:layer.id,wave:layer.type==="waves",geometry:layer.geometry,waveCount:layer.type==="waves" ? Math.max(24,Math.round(resolvedBarCount()*layer.params.waves.density/100)) : 0,common:{
+ readonly property string transformKey: JSON.stringify(renderLayers.map(layer=>({id:layer.id,type:layer.type,wave:layer.type==="waves",geometry:layer.geometry,waveCount:layer.type==="waves" ? Math.max(24,Math.round(resolvedBarCount()*layer.params.waves.density/100)) : 0,common:{
      x:layer.common.x,y:layer.common.y,scale:layer.common.scale,rotation:layer.common.rotation,normalOffset:layer.common.normalOffset}})).sort((a,b)=>a.id.localeCompare(b.id)))
  readonly property var barGeometry: buildBarGeometry()
  readonly property bool hasWaves:renderLayers.some(layer=>layer.type==="waves")
@@ -85,10 +89,13 @@ Item {
  }
  function layerBarStyle(layer){
   const result=AudioLayers.barStyle(layer)
+  result.linear=usesLine(layer)
   if(layer.geometry && !layer.geometry.inherited){const g=LayerGeometry.resolve(settings,layer.geometry);result.radiusX=g.visualizerEffectiveRadiusX*g.visualizerScale*imageScale;result.radiusY=g.visualizerEffectiveRadiusY*g.visualizerScale*imageScale}
   return result
  }
+ function usesLine(layer){return linearMode && layer.type==="bars" && (!layer.geometry || layer.geometry.inherited)}
  function sourceGeometry(layer,wave,count){
+  if(usesLine(layer))return linearPoints
   if(!layer.geometry || layer.geometry.inherited){
    if(!wave)return barGeometry
    return count===resolvedBarCount() ? waveGeometry : GeometryEngine.build(settings,centerX,centerY,circleRadiusX,circleRadiusY,imageScale,count,true)
@@ -99,9 +106,12 @@ Item {
  function buildGeometryCache() {
   const result={},sources={}
   for(const entry of JSON.parse(transformKey)){
-   const key=JSON.stringify([entry.geometry,entry.wave,entry.waveCount])
+   const line=usesLine(entry)
+   const key=JSON.stringify([entry.geometry,entry.wave,entry.waveCount,line])
    if(!sources[key])sources[key]=sourceGeometry(entry,entry.wave,entry.waveCount || resolvedBarCount())
-   result[entry.id]=AudioLayers.transformV2(sources[key],centerX,centerY,imageScale,entry.common)
+   const cx=line ? (lineFrame.horizontal ? lineFrame.start+lineFrame.length/2 : lineFrame.base) : centerX
+   const cy=line ? (lineFrame.horizontal ? lineFrame.base : lineFrame.start+lineFrame.length/2) : centerY
+   result[entry.id]=AudioLayers.transformV2(sources[key],cx,cy,line ? 1 : imageScale,entry.common)
   }
   return result
  }
@@ -194,7 +204,7 @@ Item {
     }
     function resolvedBarCount() {
         return Math.max(24, Math.min(384,
-            Math.round(Number(settings.visualizerBarCount) || 24)))
+            Math.round(Number(linearMode ? linear.count : settings.visualizerBarCount) || 24)))
     }
     function sampleLevel(values, index, count) {
         if (!values || values.length === 0)
@@ -219,7 +229,7 @@ Item {
             if (fade <= 0) return
             const style=layer.style,original=style==="rounded" && layer.rounding===100
             const dots=style==="dots",segmented=style==="segmented",peaksStyle=style==="peaks"
-            const scale = spectrumEffect.imageScale * layer.scale
+            const scale = (layer.linear ? 1 : spectrumEffect.imageScale) * layer.scale
             const rx = (layer.radiusX===undefined ? spectrumEffect.circleRadiusX : layer.radiusX) * layer.scale
             const ry = (layer.radiusY===undefined ? spectrumEffect.circleRadiusY : layer.radiusY) * layer.scale
             const testMode = spectrumEffect.settings.visualizerTestMode
@@ -236,7 +246,10 @@ Item {
             // rx/ry are already in screen pixels; only user spacing and stroke
             // dimensions need the local-to-screen multiplier.
             const slotWidth = 2 * Math.PI * Math.sqrt(rx * ry) / count
-            const barWidth = Math.max(0.65 * scale, Math.min(
+            const line = layer.linear ? spectrumEffect.linear : null
+            const cell = line ? spectrumEffect.lineFrame.length * scale / count : 0
+            const length = line ? Math.max(0, spectrumEffect.lineFrame.depth - (testMode ? 9 : 3)) : layer.length
+            const barWidth = line ? Math.max(0.25,Math.min(line.thickness*scale,cell-line.gap*scale)) : Math.max(0.65 * scale, Math.min(
                 layer.thickness * scale * Math.max(.05,(slotWidth-layer.gap*scale)/Math.max(.65*scale,slotWidth-3*scale)),
                 slotWidth - layer.gap * scale))
 
@@ -262,13 +275,13 @@ Item {
                 if(!mask[i]){segments.push(0,0,0,0);continue}
                 const point = geometry[i]
                 const response = !customAudio ? responses[i] : Math.max(0,Math.min(1,(localLevels===null ? responses[i] : Math.pow(Math.max(0,localLevels[i]),.78)*globalSensitivity*(1+bass*(1-i/(count-1))))*layerGain))
-                const barLength = (testMode ? 9 + layer.length
+                const barLength = (testMode ? 9 + length
                         * response * intensity
-                    : 3 + layer.length * response * intensity) * scale
+                    : 3 + length * response * intensity) * scale
 
                 const startX = point.x, startY = point.y
-                const endX = startX + point.nx * barLength * layer.direction
-                const endY = startY + point.ny * barLength * layer.direction
+                const endX = startX + point.nx * barLength * (line ? 1 : layer.direction)
+                const endY = startY + point.ny * barLength * (line ? 1 : layer.direction)
                 segments.push(startX,startY,endX,endY)
                 if (glowEnabled) {
                     let glowLevel = frameLevels[i]
@@ -327,8 +340,8 @@ Item {
                 else ctx.stroke()
                 if(segmented)ctx.setLineDash([])
                 if(peaksStyle && cache.peaks){
-                 const p=geometry[i],length=(3+layer.length*Math.max(responses[i],cache.peaks[i])*layer.sensitivity/100*intensity)*scale
-                 const px=p.x+p.nx*length*layer.direction,py=p.y+p.ny*length*layer.direction
+                 const p=geometry[i],peakLength=(3+length*Math.max(responses[i],cache.peaks[i])*layer.sensitivity/100*intensity)*scale
+                 const px=p.x+p.nx*peakLength*(line ? 1 : layer.direction),py=p.y+p.ny*peakLength*(line ? 1 : layer.direction)
                  ctx.beginPath();ctx.moveTo(px-p.ny*barWidth,py+p.nx*barWidth);ctx.lineTo(px+p.ny*barWidth,py-p.nx*barWidth);ctx.lineWidth=Math.max(.8,scale);ctx.stroke()
                 }
 
@@ -358,7 +371,7 @@ Item {
    const testMode=spectrumEffect.settings.visualizerTestMode
    const sensitivity=Math.max(0.5,Math.min(2,spectrumEffect.settings.visualizerSensitivity/100))
    if(spectrumEffect.hasBars)for(let i=0;i<count;i++) {
-    const angle=spectrumEffect.barGeometry[i].angle
+    const angle=(spectrumEffect.linearMode ? spectrumEffect.linearPoints : spectrumEffect.barGeometry)[i].angle
     const cached=smoothed.length===count ? Number(smoothed[i]) : NaN
     const level=testMode ? 0.56+0.22*Math.sin(angle*2+0.65)+0.14*Math.sin(angle*7-0.9)
         : Number.isFinite(cached) ? cached : spectrumEffect.sampleLevel(source,i,count)
