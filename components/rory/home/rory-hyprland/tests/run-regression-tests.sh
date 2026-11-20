@@ -6,7 +6,7 @@ sh "$project/tests/run-render-tests.sh"
 test_dir=$(mktemp -d /tmp/rory-regression-tests.XXXXXX)
 trap 'rm -rf "$test_dir"' EXIT HUP INT TERM
 cp "$project/"*.qml "$project/"*.js "$test_dir/"
-for directory in audio-layers audio-particles visualizer-layers studio-profiles scripts assets; do
+for directory in audio-layers audio-particles visualizer-layers studio-profiles scripts assets art; do
     cp -R "$project/$directory" "$test_dir/"
 done
 cp "$project/tests/tst_regressions.qml" "$test_dir/shell.qml"

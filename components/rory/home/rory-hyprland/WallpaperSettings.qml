@@ -13,6 +13,32 @@ Item {
 
     readonly property url storagePath: "file://" + Quickshell.shellPath(".wallpaper-settings.ini")
     property alias imageUrl: saved.imageUrl
+    function applyShortcutWallpaper(path) {
+        if (externalWallpaper) return "ERROR: fondo administrado por un proveedor externo"
+        if (!path.startsWith("/") || !path.endsWith("/shortcut-wallpaper.svg")) return "ERROR: archivo inesperado"
+        if (!shortcutBackup.applied) {
+            shortcutBackup.previous = String(imageUrl)
+            shortcutBackup.applied = true
+        }
+        imageUrl = "file://" + path.split("/").map(encodeURIComponent).join("/")
+        return "RORY_WALLPAPER_OK"
+    }
+    function restoreShortcutWallpaper() {
+        if (externalWallpaper) return "ERROR: fondo administrado por un proveedor externo"
+        if (!shortcutBackup.applied) return "ERROR: sin fondo de atajos aplicado"
+        if (!String(imageUrl).endsWith("/shortcut-wallpaper.svg")) return "ERROR: el fondo fue cambiado desde Studio"
+        imageUrl = shortcutBackup.previous
+        shortcutBackup.applied = false
+        shortcutBackup.previous = ""
+        return "RORY_WALLPAPER_OK"
+    }
+    Settings {
+        id: shortcutBackup
+        location: root.storagePath
+        category: "RoryShortcutWallpaper"
+        property bool applied: false
+        property string previous: ""
+    }
     property bool externalWallpaper: false
     property string observedWallpaper: ""
     readonly property string activeWallpaper: externalWallpaper ? observedWallpaper : imageUrl

@@ -17,7 +17,7 @@ Item {
             y: 0
             width: 24
             height: 46
-            source: "assets/floral-petal.svg"
+            source: "art/floral-petal.svg"
             sourceSize.width: 32
             sourceSize.height: 60
             transformOrigin: Item.Bottom

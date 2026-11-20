@@ -10,6 +10,7 @@ PanelWindow {
     required property ShellScreen modelData
     required property var studio
     required property var associations
+    property var taskbars:null
     screen:modelData
     anchors {top:true;bottom:true;left:true;right:true}
     visible:studio.page!=="" && modelData===studio.targetScreen
@@ -57,9 +58,52 @@ PanelWindow {
                         manager:launcher.associations
                     }
                     Loader {
+                        Layout.fillWidth:true
+                        active:launcher.taskbars!==null && launcher.studio.page==="taskbars"
+                        visible:active
+                        sourceComponent:TaskbarEditor {store:launcher.taskbars;studio:launcher.studio}
+                        onActiveChanged:if(!active && launcher.taskbars)launcher.taskbars.dragging=false
+                    }
+                    Loader {
                         Layout.fillWidth:true;active:launcher.studio.page==="settings";visible:active
                         sourceComponent:ColumnLayout {
                             Label {text:"Configuración general";color:"#eadce5";font.pixelSize:18;font.bold:true}
+                            StudioSection {
+                                title:"Temas de RoryBar"
+                                StudioThemePicker {title:"RoryBar · global";theme:launcher.studio.globalBarTheme;onChosen:value=>launcher.studio.globalBarTheme=value}
+                                StudioThemePicker {title:"Centro de control · global";theme:launcher.studio.globalCenterTheme;onChosen:value=>launcher.studio.globalCenterTheme=value}
+                                StudioThemePicker {
+                                    title:"RoryBar · fondo actual";allowGlobal:true
+                                    enabled:!!launcher.studio.wallpaperSettings.activeWallpaper && launcher.associations.ready
+                                    theme:launcher.studio.wallpaperThemes.bar ?? ""
+                                    onChosen:value=>launcher.studio.setWallpaperTheme("bar",value)
+                                }
+                                StudioThemePicker {
+                                    title:"Centro de control · fondo actual";allowGlobal:true
+                                    enabled:!!launcher.studio.wallpaperSettings.activeWallpaper && launcher.associations.ready
+                                    theme:launcher.studio.wallpaperThemes.center ?? ""
+                                    onChosen:value=>launcher.studio.setWallpaperTheme("center",value)
+                                }
+                            }
+                            SakuraDecorationEditor {Layout.fillWidth:true;studio:launcher.studio}
+                            RoryNotificationSettings {Layout.fillWidth:true;studio:launcher.studio}
+                            CrimsonEditor {
+                                Layout.fillWidth:true
+                                title:"Centro de control de RoryBar"
+                                forRoryBar:true
+                                appearanceTheme:launcher.studio.roryCenterTheme
+                                config:launcher.studio.roryCrimson
+                                controller:launcher.studio.roryCrimsonInputs
+                                owner:"rorybar"
+                                onChanged:next=>launcher.studio.saveRoryCrimson(next)
+                            }
+                            Label {
+                                Layout.fillWidth:true
+                                text:launcher.studio.roryCrimsonError
+                                visible:text!==""
+                                color:"#ef9cb8"
+                                wrapMode:Text.WordWrap
+                            }
                             StudioShortcutPanel {Layout.fillWidth:true;studio:launcher.studio}
                             StudioToggle {text:"Usar el atajo existente de Studio para el lanzador";checked:launcher.studio.centralShortcut;onToggled:launcher.studio.centralShortcut=checked}
                             Label {Layout.fillWidth:true;text:"Actívalo después de probar el menú. Reutiliza el enlace que llama a toggleAudioEditor. Puedes comprobar y cambiar su combinación arriba. Los IPC originales siguen disponibles.";color:"#bea8b3";font.pixelSize:12;wrapMode:Text.WordWrap}

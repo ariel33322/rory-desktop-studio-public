@@ -34,13 +34,27 @@ class NativeRouteTests(unittest.TestCase):
         for name in ["ClockProfileManager.qml", "StudioAssociations.qml", "StudioProfileBar.qml"]:
             self.assertNotIn("ClockWidget", (ROOT / name).read_text())
 
-    def test_studio_button_and_dropdown_are_the_editor_routes(self):
+    def test_studio_uses_the_shortcut_and_dropdown_without_a_bar_button(self):
         bar = (ROOT / "RoryBar.qml").read_text()
-        self.assertIn('text: "Studio"', bar)
+        self.assertNotIn('text: "Studio"', bar)
+        shell = (ROOT / "shell.qml").read_text()
+        match = re.search(r"function toggleAudioEditor\(\): void \{([^}]+)\}", shell)
+        self.assertIsNotNone(match)
+        self.assertIn("studio.toggle()", match.group(1))
+        self.assertIn("openAudioEditor()", match.group(1))
         for name in ["ClockEditor.qml", "VisualizerEditor.qml", "StudioLauncher.qml"]:
             self.assertIn("StudioNavigation {", (ROOT / name).read_text())
         for name in ["VisualizerEditor.qml", "WallpaperPanel.qml"]:
             self.assertNotRegex((ROOT / name).read_text(), r'text:\s*"Editar (?:reloj|visualizador)"')
+
+    def test_tooltips_are_disabled_only_in_crimson(self):
+        for name in ["CrimsonCenter.qml", "CrimsonControls.qml", "CrimsonTile.qml", "CrimsonSlider.qml"]:
+            self.assertNotIn("ToolTip.", (ROOT / name).read_text())
+        for name in ["NetworkPanel.qml", "BluetoothPanel.qml"]:
+            self.assertIn("tooltipEnabled:!panel.crimsonMode", (ROOT / name).read_text())
+        button = (ROOT / "RoryButton.qml").read_text()
+        self.assertRegex(button, r"property bool tooltipEnabled:\s*true")
+        self.assertIn("ToolTip.visible: tooltipEnabled", button)
 
     def test_gallery_does_not_navigate_when_applying(self):
         source = (ROOT / "WallpaperPanel.qml").read_text()

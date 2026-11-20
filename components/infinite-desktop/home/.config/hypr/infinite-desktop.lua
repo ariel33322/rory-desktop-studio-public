@@ -10,7 +10,9 @@ local function zoom(direction)
     local workspace = hl.get_active_workspace()
     if not workspace then return { pass_event = true } end
 
-    local stateFile = io.open("/tmp/floating_tile_state.json", "r")
+    local runtime = os.getenv("XDG_RUNTIME_DIR")
+    if not runtime then return { pass_event = true } end
+    local stateFile = io.open(runtime .. "/rory-floating-tile.json", "r")
     if not stateFile then return { pass_event = true } end
     local state = stateFile:read("*a")
     stateFile:close()

@@ -142,7 +142,7 @@ Item {
                 anchors.margins: 7
                 width: 32
                 height: 32
-                source: "assets/panel-rose.svg"
+                source: "art/panel-rose.svg"
                 opacity: 0.82
             }
             Text {

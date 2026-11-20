@@ -8,6 +8,7 @@ Item {
     required property string endpoint
     required property string referenceOutput
     property string path: ""
+    property bool available: false
     property int nextId: 0
     property int subscription: 0
     property int snapshot: 0
@@ -52,6 +53,7 @@ Item {
                     wire.connected = false
                     return
                 }
+                available = true
                 const output = outputs.find(entry => entry.connected && entry.name === referenceOutput)
                 if (output && typeof output.path === "string" && output.path.startsWith("/"))
                     path = output.path
@@ -71,6 +73,7 @@ Item {
         path: observer.endpoint
         parser: SplitParser { onRead: line => observer.receive(line) }
         onConnectionStateChanged: {
+            observer.available = false
             observer.subscription = 0
             observer.snapshot = 0
             observer.refreshPending = false

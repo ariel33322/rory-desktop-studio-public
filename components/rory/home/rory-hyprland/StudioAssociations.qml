@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtCore
+import "RoryTheme.js" as Theme
 import "StudioProfiles.js" as Profiles
 import "WallpaperIdentity.js" as Wallpaper
 
@@ -32,6 +33,12 @@ Item {
     function key(url) {return Wallpaper.normalize(url)}
     function ruleValid(rule) {
         if(!rule || typeof rule.clockProfile!=="string" || typeof rule.audioProfile!=="string")throw new Error("Asociación inválida")
+        if (rule.appearance!==undefined) {
+            if(!rule.appearance || typeof rule.appearance!=="object"
+                || Object.keys(rule.appearance).some(key=>!["bar","center"].includes(key) || !Theme.valid(rule.appearance[key])))
+                throw new Error("Tema vinculado inválido")
+        }
+        if (rule.taskbarProfile!==undefined && typeof rule.taskbarProfile!=="string") throw new Error("Perfil de barra inválido")
     }
     function validate(doc) {
         if(!doc || doc.version!==1 || !doc.entries || typeof doc.entries!=="object" || Array.isArray(doc.entries))throw new Error("Catálogo de asociaciones inválido")
@@ -53,10 +60,62 @@ Item {
             Qt.callLater(handleWallpaperChange)
         }catch(e){error=String(e.message || e)}
     }
+    function appearanceFor(url) {
+        if(!document)return ({})
+        try {return document.entries[key(url)]?.appearance ?? ({})}
+        catch (_) {return ({})}
+    }
+    function setAppearance(url,component,theme) {
+        try {
+            if(!ready)throw new Error("Espera a que se carguen las asociaciones")
+            const k=key(url)
+            if(!k)throw new Error("Selecciona un fondo")
+            if(!["bar","center"].includes(component) || (theme!=="" && !Theme.valid(theme)))throw new Error("Tema inválido")
+            const doc=Profiles.clone(document)
+            const entry=doc.entries[k] ?? {clockProfile:"",audioProfile:"",taskbarOnly:true}
+            const appearance=Object.assign({},entry.appearance)
+            if(theme)appearance[component]=theme
+            else delete appearance[component]
+            if(Object.keys(appearance).length)entry.appearance=appearance
+            else delete entry.appearance
+            if(entry.taskbarOnly && !entry.taskbarProfile && !entry.appearance)delete doc.entries[k]
+            else doc.entries[k]=entry
+            commit(doc)
+            return true
+        }catch(e){error=String(e.message || e);return false}
+    }
+    function taskbarProfile(url) {
+        if (!document) return "global"
+        try { return document.entries[key(url)]?.taskbarProfile || "global" }
+        catch (_) { return "global" }
+    }
+    function setTaskbarProfile(url,id) {
+        try {
+            if (!ready) throw new Error("Espera a que se carguen las asociaciones")
+            const k=key(url)
+            if (!k && id==="global") return true
+            if (!k) throw new Error("Selecciona un fondo para vincular un perfil")
+            const doc=Profiles.clone(document)
+            const entry=doc.entries[k] ?? {clockProfile:"",audioProfile:"",taskbarOnly:true}
+            if (id==="global") {
+                delete entry.taskbarProfile
+                if (entry.taskbarOnly && !entry.appearance) delete doc.entries[k]
+                else doc.entries[k]=entry
+            } else {
+                entry.taskbarProfile=id
+                doc.entries[k]=entry
+            }
+            commit(doc)
+            return true
+        } catch(e) { error=String(e.message || e); return false }
+    }
     function associationRule(url) {
         const k = key(url)
-        if (document.entries[k]) return Profiles.clone(document.entries[k])
-        return {clockProfile:"",audioProfile:audioManager.catalog.wallpapers[k] || ""}
+        const entry=document.entries[k]
+        if (entry && !entry.taskbarOnly) return Profiles.clone(entry)
+        const rule={clockProfile:"",audioProfile:audioManager.catalog.wallpapers[k] || ""}
+        if (entry?.taskbarProfile) rule.taskbarProfile=entry.taskbarProfile
+        return rule
     }
     function resolvedRule(url) {
         const explicit = associationRule(url), defaults = document.defaults
@@ -69,14 +128,14 @@ Item {
     function setAudioVisibility(visible) { manualAudio = visible }
     function allKeys() {
         if(!ready)return []
-        return Array.from(new Set(Object.keys(document.entries).concat(Object.keys(audioManager.catalog.wallpapers)))).sort()
+        return Array.from(new Set(Object.keys(document.entries).filter(k=>!document.entries[k].taskbarOnly).concat(Object.keys(audioManager.catalog.wallpapers)))).sort()
     }
     function saveAssociation(url,rule) {
         try {
             if(!ready)throw new Error("Los perfiles aún no están listos")
             ruleValid(rule);checkProfiles(rule)
             const k=key(url);if(!k)throw new Error("Selecciona un fondo")
-            const doc=Profiles.clone(document);doc.entries[k]=Object.assign({},doc.entries[k],rule);commit(doc)
+            const doc=Profiles.clone(document);doc.entries[k]=Object.assign({},doc.entries[k],rule);delete doc.entries[k].taskbarOnly;commit(doc)
             return true
         }catch(e){error=String(e.message || e);return false}
     }
@@ -85,7 +144,11 @@ Item {
             const k=key(url),doc=Profiles.clone(document)
             const legacy=audioManager.catalog.wallpapers[k]
             if(legacy && !audioManager.unlinkWallpaper(legacy,k))throw new Error(audioManager.error)
-            delete doc.entries[k];commit(doc);return true
+            if (doc.entries[k]?.taskbarProfile || doc.entries[k]?.appearance)
+                doc.entries[k]=Object.assign({},doc.entries[k],{clockProfile:"",audioProfile:"",taskbarOnly:true})
+            else delete doc.entries[k]
+            commit(doc)
+            return true
         }catch(e){error=String(e.message || e);return false}
     }
     function checkProfiles(rule) {

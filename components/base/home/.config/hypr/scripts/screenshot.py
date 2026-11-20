@@ -8,12 +8,14 @@ from datetime import datetime
 from pathlib import Path
 
 
-MOUNT = Path(os.environ.get("HYPR_CAPTURE_MOUNT", "/mnt/captures"))
-DESTINATION = MOUNT / os.environ.get("HYPR_SCREENSHOT_DIR", "Screenshots")
+MOUNT = Path(os.environ["HYPR_CAPTURE_MOUNT"]) if os.environ.get("HYPR_CAPTURE_MOUNT") else None
+DESTINATION = (MOUNT or Path.home() / "Pictures") / os.environ.get("HYPR_SCREENSHOT_DIR", "Screenshots")
 
 
 def open_destination():
-    if not MOUNT.is_mount():
+    if MOUNT is None:
+        DESTINATION.mkdir(mode=0o700, parents=True, exist_ok=True)
+    elif not MOUNT.is_mount():
         raise RuntimeError(f"El HDD no está montado en {MOUNT}")
     if not DESTINATION.is_dir():
         raise RuntimeError(f"No existe la carpeta {DESTINATION}")
@@ -23,7 +25,7 @@ def open_destination():
     # Keep the mounted directory open through capture and clipboard transfer.
     fd = os.open(DESTINATION, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        if not MOUNT.is_mount() or os.fstat(fd).st_dev != MOUNT.stat().st_dev:
+        if MOUNT is not None and (not MOUNT.is_mount() or os.fstat(fd).st_dev != MOUNT.stat().st_dev):
             raise RuntimeError(f"La carpeta no está en el HDD montado: {DESTINATION}")
     except BaseException:
         os.close(fd)

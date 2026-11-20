@@ -14,8 +14,8 @@ import tempfile
 import time
 from datetime import datetime
 
-MOUNT = Path(os.environ.get("HYPR_CAPTURE_MOUNT", "/mnt/captures"))
-OUTPUT = MOUNT / os.environ.get("HYPR_RECORDING_DIR", "Recordings")
+MOUNT = Path(os.environ["HYPR_CAPTURE_MOUNT"]) if os.environ.get("HYPR_CAPTURE_MOUNT") else None
+OUTPUT = (MOUNT or Path.home() / "Videos") / os.environ.get("HYPR_RECORDING_DIR", "Recordings")
 MONITOR = os.environ.get("HYPR_RECORDING_MONITOR")
 
 
@@ -32,6 +32,9 @@ def notify(title, message, error=False):
 
 
 def open_output():
+    if MOUNT is None:
+        OUTPUT.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return os.open(OUTPUT, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     mount = subprocess.run(
         ["findmnt", "-rn", "-M", str(MOUNT), "-o", "ID,VFS-OPTIONS"],
         capture_output=True, text=True, check=False,

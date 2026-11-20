@@ -75,6 +75,10 @@ def main():
     config = Path.home() / ".config/hypr/hyprland.lua"
     try:
         text = config.read_text()
+        managed = config.with_name("rory-distribution.lua")
+        if '"/.config/hypr/rory-distribution.lua"' in text and managed.is_file():
+            config = managed
+            text = config.read_text()
         if args.status:
             print(json.dumps({"ok": True, "shortcut": current_shortcut(text), "message": "Atajo actual de Studio"}))
             return
@@ -85,6 +89,8 @@ def main():
         updated, label = plan(text, args.shortcut, bindings)
         backup = ""
         if args.apply and updated != text:
+            if config == managed:
+                raise ValueError("El enlace pertenece al instalador. Cambia su configuración administrada antes de modificarlo.")
             if config.is_symlink():
                 raise ValueError("La configuración es un enlace simbólico; conserva el enlace y cambia el atajo manualmente")
             backup_dir = Path(__file__).resolve().parent.parent / ".backups"

@@ -10,7 +10,7 @@ project=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 test_dir=$(mktemp -d /tmp/rory-render-tests.XXXXXX)
 trap 'rm -rf "$test_dir"' EXIT HUP INT TERM
 cp "$project/"*.js "$project/RadialSpectrum.qml" "$project/BarSilence.qml" "$test_dir/"
-for directory in audio-layers audio-particles visualizer-layers; do
+for directory in art audio-layers audio-particles visualizer-layers; do
     cp -R "$project/$directory" "$test_dir/"
 done
 cp "$project/tests/tst_bar_render.qml" "$test_dir/"

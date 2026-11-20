@@ -5,7 +5,7 @@ import math
 from evdev import InputDevice, list_devices, ecodes
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from floating_tile_toggle import LOCK_FILE
+from floating_tile_toggle import LOCK_FILE, RUNTIME_DIR
 from hypr_ipc import batch, is_canvas_window, move_window_exact_lua
 
 # Ya no se pasan rutas de dispositivo a mano: se autodetectan por capacidades.
@@ -23,7 +23,7 @@ KEY_LEFT=105; KEY_RIGHT=106
 KEY_UP=103; KEY_DOWN=108
 BTN_LEFT=272
 
-STATE_FILE = "/tmp/infinite-desktop-state"
+STATE_FILE = RUNTIME_DIR / "rory-infinite-desktop-state"
 PROTECTED_APPS = ['brave-browser', 'chromium', 'chromium-browser', 'google-chrome', 
                   'firefox', 'firefoxdeveloperedition', 'librewolf', 'vivaldi', 
                   'opera', 'microsoft-edge']

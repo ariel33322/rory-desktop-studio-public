@@ -1,0 +1,77 @@
+{
+  "required_for_rory": {
+    "qs": "quickshell",
+    "hyprctl": "hyprland",
+    "python3": "python",
+    "busctl": "systemd"
+  },
+  "packages_for_rory": [
+    "qt6-declarative",
+    "qt6-svg"
+  ],
+  "optional_by_module": {
+    "audio": {
+      "cava": "cava",
+      "wpctl": "wireplumber",
+      "easyeffects": "easyeffects"
+    },
+    "network": {
+      "nmcli": "networkmanager"
+    },
+    "bluetooth": {
+      "bluetoothctl": "bluez-utils"
+    },
+    "battery": {
+      "upower": "upower",
+      "powerprofilesctl": "power-profiles-daemon"
+    },
+    "media": {
+      "playerctl": "playerctl",
+      "kdeconnect-cli": "kdeconnect"
+    },
+    "notifications": {
+      "notify-send": "libnotify"
+    },
+    "capture": {
+      "grim": "grim",
+      "slurp": "slurp",
+      "gpu-screen-recorder": "gpu-screen-recorder",
+      "wl-copy": "wl-clipboard"
+    },
+    "brightness": {
+      "brightnessctl": "brightnessctl",
+      "ddcutil": "ddcutil"
+    },
+    "infinite-desktop": {
+      "flock": "util-linux"
+    },
+    "crimson-noir": {
+      "xdg-open": "xdg-utils",
+      "xdg-user-dir": "xdg-user-dirs"
+    }
+  },
+  "optional_package_only": {
+    "bluetooth_pairing": [
+      "python-dbus",
+      "python-gobject",
+      "bluez"
+    ],
+    "audio": [
+      "pipewire",
+      "pipewire-audio"
+    ],
+    "crimson_noir": [
+      "qt6-imageformats",
+      "qt6-webengine"
+    ],
+    "skwd_import": [
+      "libarchive"
+    ],
+    "capture": [
+      "xdg-desktop-portal-hyprland"
+    ],
+    "infinite_desktop": [
+      "python-evdev"
+    ]
+  }
+}

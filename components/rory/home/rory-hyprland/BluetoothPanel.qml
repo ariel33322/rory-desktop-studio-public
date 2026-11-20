@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import "RoryTheme.js" as Theme
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
@@ -12,6 +13,9 @@ Column {
     signal advanced()
     signal revealTop()
     spacing: 8
+    property bool crimsonMode:false
+    property string theme:"crimson"
+    component MenuButton: RoryButton {tooltipEnabled:!panel.crimsonMode;theme:panel.theme}
     property string status: ""
     property var request: null
     property var forgetDevice: null
@@ -33,6 +37,24 @@ Column {
         agent.write(JSON.stringify({action:"answer", accept:accept, value:pin.text})+"\n")
         pin.text = ""
         if (!accept || !["pin","passkey"].includes(request?.kind)) request = null
+    }
+    Component.onCompleted: if (crimsonMode && services.adapter?.enabled && !services.adapter.discovering)toggleDiscovery()
+    function toggleDiscovery() {
+        const adapter=services.adapter
+        if(!adapter?.enabled)return
+        if(adapter.discovering && !ownsDiscovery) {
+            status="Otra aplicación está buscando dispositivos."
+            return
+        }
+        if(adapter.discovering) {
+            adapter.discovering=false
+            ownsDiscovery=false
+        } else {
+            scanningAdapter=adapter
+            adapter.discovering=true
+            ownsDiscovery=true
+            discoveryLimit.restart()
+        }
     }
     Component.onDestruction: {
         if (ownsDiscovery && scanningAdapter) scanningAdapter.discovering = false
@@ -60,8 +82,9 @@ Column {
     }
     RowLayout {
         width: parent.width
-        PanelText { Layout.fillWidth: true; text: panel.services.bluetoothLabel; color: "#fff0f2" }
+        PanelText { Layout.fillWidth: true; text: panel.crimsonMode ? "Activar Bluetooth" : panel.services.bluetoothLabel; color: Theme.tone(panel.theme,"#fff0f2","#F7C7DA") }
         PanelSwitch {
+            theme:panel.theme
             checked: panel.services.adapter?.enabled ?? false
             enabled: !!panel.services.adapter && [BluetoothAdapterState.Enabled,BluetoothAdapterState.Disabled].includes(panel.services.adapter.state)
             Accessible.name: "Activar Bluetooth"; onToggled: panel.services.toggleBluetooth()
@@ -76,12 +99,13 @@ Column {
         PanelText {
             text: row.device.name + (row.device.connected ? "  ✓ Conectado" : row.device.paired ? " · Vinculado" : "")
                 + (row.device.batteryAvailable ? " · " + Math.round(row.device.battery*100) + " %" : "")
-            font.pixelSize: 13; color: "#fff0f2"
+            font.pixelSize: 13; color: Theme.tone(panel.theme,"#fff0f2","#F7C7DA")
         }
         RowLayout {
             width: parent.width
-            RoryButton {
+            MenuButton {
                 Layout.fillWidth: true
+                Layout.preferredHeight:panel.crimsonMode ? 42 : implicitHeight
                 text: row.device.pairing ? "Emparejando…" : row.device.connected ? "Desconectar" : row.device.paired ? "Conectar" : "Emparejar"
                 enabled: !!panel.services.adapter?.enabled && !row.device.pairing && (row.device.paired || (panel.agentReady && !panel.busy))
                 onClicked: {
@@ -90,7 +114,7 @@ Column {
                     else { panel.busy = true; panel.status = "Emparejando " + row.device.name + "…"; agent.write(JSON.stringify({action:"pair",path:row.device.dbusPath})+"\n") }
                 }
             }
-            RoryButton { visible: row.device.paired; text: "Quitar"; onClicked: panel.forgetDevice = row.device }
+            MenuButton { visible: row.device.paired; text: "Quitar"; onClicked: panel.forgetDevice = row.device }
         }
     }
     Column {
@@ -98,38 +122,38 @@ Column {
         PanelText { text: panel.request?.kind === "confirm" ? "¿Coincide este código? " + panel.request.passkey : panel.request?.kind === "authorize" ? "¿Autorizar este dispositivo?" : "Introduce el PIN o la clave del dispositivo" }
         TextField {
             id: pin; width: parent.width; visible: ["pin","passkey"].includes(panel.request?.kind)
-            echoMode: TextInput.Password; color: "#fff0f3"; maximumLength: panel.request?.kind === "passkey" ? 6 : 16
-            background: Rectangle { color: "#27191f"; radius: 5; border.color: "#9f1734" }
+            echoMode: TextInput.Password; color: Theme.tone(panel.theme,"#fff0f3","#F7C7DA"); maximumLength: panel.request?.kind === "passkey" ? 6 : 16
+            background: Rectangle { color: Theme.tone(panel.theme,"#27191f","#25101E"); radius: 5; border.color: Theme.tone(panel.theme,"#9f1734","#FF5B9A") }
         }
         RowLayout {
-            RoryButton { text: "Aceptar"; onClicked: panel.answer(true) }
-            RoryButton { text: "Rechazar"; onClicked: panel.answer(false) }
+            MenuButton { text: "Aceptar"; onClicked: panel.answer(true) }
+            MenuButton { text: "Rechazar"; onClicked: panel.answer(false) }
         }
     }
     Column {
         width: parent.width; spacing: 5; visible: !!panel.forgetDevice
         PanelText { text: "¿Eliminar el emparejamiento de " + (panel.forgetDevice?.name ?? "") + "?" }
         RowLayout {
-            RoryButton { text: "Eliminar"; onClicked: { if (panel.forgetDevice) panel.deviceAction("forget",panel.forgetDevice); panel.forgetDevice = null } }
-            RoryButton { text: "Cancelar"; onClicked: panel.forgetDevice = null }
+            MenuButton { text: "Eliminar"; onClicked: { if (panel.forgetDevice) panel.deviceAction("forget",panel.forgetDevice); panel.forgetDevice = null } }
+            MenuButton { text: "Cancelar"; onClicked: panel.forgetDevice = null }
         }
     }
-    PanelText { text: "Dispositivos vinculados"; color: "#fff0f2" }
-    Repeater { model: panel.devices.filter(device => device.paired || device.connected); DeviceRow { required property var modelData; device: modelData } }
+    PanelText { visible:panel.crimsonMode; text:"Dispositivos conectados"; color:Theme.tone(panel.theme,"#fff0f2","#F7C7DA") }
+    Repeater {
+        model: panel.crimsonMode ? panel.devices.filter(device=>device.connected) : []
+        DeviceRow { required property var modelData; device:modelData }
+    }
+    PanelText { text: panel.crimsonMode ? "Dispositivos guardados" : "Dispositivos vinculados"; color: Theme.tone(panel.theme,"#fff0f2","#F7C7DA") }
+    Repeater { model: panel.devices.filter(device => panel.crimsonMode ? device.paired && !device.connected : device.paired || device.connected); DeviceRow { required property var modelData; device: modelData } }
     PanelRule {}
-    PanelText { text: "Dispositivos cercanos"; color: "#fff0f2" }
+    PanelText { text: panel.crimsonMode ? "Dispositivos disponibles" : "Dispositivos cercanos"; color: Theme.tone(panel.theme,"#fff0f2","#F7C7DA") }
     Repeater { model: panel.devices.filter(device => !device.paired && !device.connected); DeviceRow { required property var modelData; device: modelData } }
     PanelText { text: panel.status; visible: !!text }
-    RoryButton {
+    MenuButton {
         width: parent.width; enabled: !!panel.services.adapter?.enabled
         text: panel.services.adapter?.discovering ? "Detener búsqueda" : "Buscar dispositivos"
-        onClicked: {
-            const adapter = panel.services.adapter
-            if (adapter.discovering && !panel.ownsDiscovery) { panel.status = "Otra aplicación está buscando dispositivos."; return }
-            if (adapter.discovering) { adapter.discovering = false; panel.ownsDiscovery = false }
-            else { panel.scanningAdapter = adapter; adapter.discovering = true; panel.ownsDiscovery = true; discoveryLimit.restart() }
-        }
+        onClicked:panel.toggleDiscovery()
     }
     Timer { id: discoveryLimit; interval: 30000; onTriggered: { if (panel.ownsDiscovery && panel.scanningAdapter) panel.scanningAdapter.discovering = false; panel.ownsDiscovery = false } }
-    RoryButton { width: parent.width; text: "⚙  Ajustes de Bluetooth"; onClicked: panel.advanced() }
+    MenuButton { width: parent.width; text: panel.crimsonMode ? "Más ajustes" : "⚙  Ajustes de Bluetooth"; onClicked: panel.advanced() }
 }

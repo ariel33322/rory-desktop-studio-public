@@ -1,9 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
+import "RoryTheme.js" as Theme
 
 Item {
     id: vine
+    property string theme:"crimson"
     property real growth: 0
     property bool reflected: false
     width: 365
@@ -28,7 +30,7 @@ Item {
             preferredRendererType: Shape.CurveRenderer
 
             ShapePath {
-                strokeColor: "#b81a32"
+                strokeColor: Theme.tone(vine.theme,"#b81a32",Theme.fuchsia)
                 strokeWidth: 1.45
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
@@ -41,7 +43,7 @@ Item {
             }
 
             ShapePath {
-                strokeColor: "#a11429"
+                strokeColor: Theme.tone(vine.theme,"#a11429",Theme.fuchsia)
                 strokeWidth: 1.35
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
@@ -53,7 +55,7 @@ Item {
             }
 
             ShapePath {
-                strokeColor: "#b91b33"
+                strokeColor: Theme.tone(vine.theme,"#b91b33",Theme.fuchsia)
                 strokeWidth: 1.4
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
@@ -65,7 +67,7 @@ Item {
             }
 
             ShapePath {
-                strokeColor: "#8b0f24"
+                strokeColor: Theme.tone(vine.theme,"#8b0f24",Theme.fuchsia)
                 strokeWidth: 1
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
@@ -77,7 +79,7 @@ Item {
             }
 
             ShapePath {
-                strokeColor: "#b1182d"
+                strokeColor: Theme.tone(vine.theme,"#b1182d",Theme.fuchsia)
                 strokeWidth: 1
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap
@@ -111,7 +113,7 @@ Item {
                 y: modelData.y - height
                 width: 15
                 height: 23
-                source: "assets/floral-leaf.svg"
+                source: Theme.art(vine.theme,"floral-leaf")
                 sourceSize.width: 22
                 sourceSize.height: 34
                 transformOrigin: Item.Bottom

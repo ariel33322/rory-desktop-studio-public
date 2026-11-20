@@ -3,6 +3,7 @@
 import fcntl
 import json
 import os
+from pathlib import Path
 import sys
 from tempfile import NamedTemporaryFile
 from time import sleep
@@ -11,8 +12,9 @@ from hypr_ipc import (batch, hyprctl_json, is_canvas_window,
                       move_window_exact_lua, resize_window_exact_lua,
                       window_float_lua)
 
-LOCK_FILE = "/tmp/floating_tile_toggle.lock"
-STATE_FILE = "/tmp/floating_tile_state.json"
+RUNTIME_DIR = Path(os.environ["XDG_RUNTIME_DIR"])
+LOCK_FILE = RUNTIME_DIR / "rory-floating-tile.lock"
+STATE_FILE = RUNTIME_DIR / "rory-floating-tile.json"
 
 
 def load_state():
